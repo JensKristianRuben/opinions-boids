@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ensure core UI styles are available */
+@layer components {
+  .bg-gray-900 {
+    background-color: rgb(17 24 39);
+  }
+  .bg-gray-800 {
+    background-color: rgb(31 41 55);
+  }
+  .bg-gray-700 {
+    background-color: rgb(55 65 81);
+  }
+  .bg-blue-600 {
+    background-color: rgb(37 99 235);
+  }
+  .bg-blue-700 {
+    background-color: rgb(29 78 216);
+  }
+  .text-white {
+    color: rgb(255 255 255);
+  }
+  .text-yellow-400 {
+    color: rgb(250 204 21);
+  }
+  .text-blue-400 {
+    color: rgb(96 165 250);
+  }
+  .bg-green-600 {
+    background-color: rgb(22 163 74);
+  }
+  .bg-red-600 {
+    background-color: rgb(220 38 38);
+  }
+  .bg-pink-500 {
+    background-color: rgb(236 72 153);
+  }
+  .bg-cyan-400 {
+    background-color: rgb(34 211 238);
+  }
+  .bg-opacity-70 {
+    --tw-bg-opacity: 0.7;
+  }
+  .text-gray-400 {
+    color: rgb(156 163 175);
+  }
+  .rounded {
+    border-radius: 0.25rem;
+  }
+  .rounded-lg {
+    border-radius: 0.5rem;
+  }
+  .p-4 {
+    padding: 1rem;
+  }
+  .p-6 {
+    padding: 1.5rem;
+  }
+  .px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .py-2 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  .space-y-2 > * + * {
+    margin-top: 0.5rem;
+  }
+  .space-y-4 > * + * {
+    margin-top: 1rem;
+  }
+  .space-y-6 > * + * {
+    margin-top: 1.5rem;
+  }
+  .gap-2 {
+    gap: 0.5rem;
+  }
+  .top-4 {
+    top: 1rem;
+  }
+  .left-4 {
+    left: 1rem;
+  }
+  .text-2xl {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+  .text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  .text-xs {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+  .font-bold {
+    font-weight: 700;
+  }
+  .font-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+  .font-semibold {
+    font-weight: 600;
+  }
+  .w-4 {
+    width: 1rem;
+  }
+  .h-4 {
+    height: 1rem;
+  }
+  .w-80 {
+    width: 20rem;
+  }
+  .mb-4 {
+    margin-bottom: 1rem;
+  }
+  .mb-2 {
+    margin-bottom: 0.5rem;
+  }
+  .mt-2 {
+    margin-top: 0.5rem;
+  }
+}
