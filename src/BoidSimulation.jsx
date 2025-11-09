@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, Zap, Users, TrendingUp } from 'lucide-react';
+import { Play, Pause, RotateCcw, Zap, Users, TrendingUp, X } from 'lucide-react';
 
 const BoidSimulation = () => {
   const canvasRef = useRef(null);
@@ -17,6 +17,9 @@ const BoidSimulation = () => {
     checks: 0,
     polarization: 0
   });
+
+  // Mobile menu state
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Simulation state
   const simRef = useRef({
@@ -430,6 +433,116 @@ const BoidSimulation = () => {
     }, 100);
   };
 
+  // Extracted control panel so we can reuse in desktop and mobile
+  const controlPanel = (
+    <div className="w-80 bg-gray-800 text-white p-6 overflow-y-auto space-y-6">
+      <h1 className="text-2xl font-bold mb-4">Opinion Boids</h1>
+
+      {/* Playback Controls */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setIsRunning(!isRunning)}
+          className="flex-1 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded flex items-center justify-center gap-2"
+        >
+          {isRunning ? <Pause size={18} /> : <Play size={18} />}
+          {isRunning ? 'Pause' : 'Play'}
+        </button>
+        <button
+          onClick={handleReset}
+          className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded"
+        >
+          <RotateCcw size={18} />
+        </button>
+      </div>
+
+      {/* Parameters */}
+      <div className="space-y-4">
+        <div>
+          <label className="flex items-center gap-2 mb-2">
+            <Users size={16} />
+            User Boids: {params.userBoidCount}
+          </label>
+          <input
+            type="range"
+            min="50"
+            max="1000"
+            step="50"
+            value={params.userBoidCount}
+            onChange={(e) => setParams({ ...params, userBoidCount: parseInt(e.target.value) })}
+            className="w-full"
+          />
+        </div>
+
+        <div>
+          <label className="block mb-2">Opinion Boids: {params.opinionBoidCount}</label>
+          <input
+            type="range"
+            min="3"
+            max="15"
+            value={params.opinionBoidCount}
+            onChange={(e) => setParams({ ...params, opinionBoidCount: parseInt(e.target.value) })}
+            className="w-full"
+          />
+        </div>
+
+        <div>
+          <label className="block mb-2">Speed: {params.speed.toFixed(1)}x</label>
+          <input
+            type="range"
+            min="0.1"
+            max="3"
+            step="0.1"
+            value={params.speed}
+            onChange={(e) => setParams({ ...params, speed: parseFloat(e.target.value) })}
+            className="w-full"
+          />
+        </div>
+
+        <div>
+          <label className="block mb-2 font-semibold">Algorithm</label>
+          <div className="space-y-2">
+            <button
+              onClick={() => setParams({ ...params, algorithm: 'optimized' })}
+              className={`w-full px-4 py-2 rounded ${
+                params.algorithm === 'optimized'
+                  ? 'bg-green-600'
+                  : 'bg-gray-700 hover:bg-gray-600'
+              }`}
+            >
+              Optimized O(n)
+            </button>
+            <button
+              onClick={() => setParams({ ...params, algorithm: 'naive' })}
+              className={`w-full px-4 py-2 rounded ${
+                params.algorithm === 'naive'
+                  ? 'bg-red-600'
+                  : 'bg-gray-700 hover:bg-gray-600'
+              }`}
+            >
+              Naive O(n²)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Info */}
+      <div className="bg-gray-900 p-4 rounded text-sm space-y-2">
+        <p className="font-semibold">Opinion Types:</p>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-full bg-pink-500"></div>
+            <span className="text-xs"><strong>Radical:</strong> Fast, cluster together</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-full bg-cyan-400"></div>
+            <span className="text-xs"><strong>Neutral:</strong> Calm, slower movement</span>
+          </div>
+        </div>
+        <p className="text-xs text-gray-400 mt-2">All boids start neutral. They keep their opinion once changed!</p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="w-full h-screen bg-gray-900 flex">
       {/* Canvas */}
@@ -455,113 +568,41 @@ const BoidSimulation = () => {
         </div>
       </div>
 
-      {/* Control Panel */}
-      <div className="w-80 bg-gray-800 text-white p-6 overflow-y-auto space-y-6">
-        <h1 className="text-2xl font-bold mb-4">Opinion Boids</h1>
+      {/* Responsive Control Panel: show on md+, mobile uses a popup */}
+      {/* Mobile menu button */}
+      <button
+        className="md:hidden fixed top-4 left-4 z-40 bg-blue-600 text-white p-3 rounded-full shadow-lg"
+        onClick={() => setMenuOpen(true)}
+        aria-label="Open settings"
+      >
+        ⚙️
+      </button>
 
-        {/* Playback Controls */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => setIsRunning(!isRunning)}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded flex items-center justify-center gap-2"
-          >
-            {isRunning ? <Pause size={18} /> : <Play size={18} />}
-            {isRunning ? 'Pause' : 'Play'}
-          </button>
-          <button
-            onClick={handleReset}
-            className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded"
-          >
-            <RotateCcw size={18} />
-          </button>
-        </div>
-
-        {/* Parameters */}
-        <div className="space-y-4">
-          <div>
-            <label className="flex items-center gap-2 mb-2">
-              <Users size={16} />
-              User Boids: {params.userBoidCount}
-            </label>
-            <input
-              type="range"
-              min="50"
-              max="1000"
-              step="50"
-              value={params.userBoidCount}
-              onChange={(e) => setParams({ ...params, userBoidCount: parseInt(e.target.value) })}
-              className="w-full"
-            />
-          </div>
-
-          <div>
-            <label className="block mb-2">Opinion Boids: {params.opinionBoidCount}</label>
-            <input
-              type="range"
-              min="3"
-              max="15"
-              value={params.opinionBoidCount}
-              onChange={(e) => setParams({ ...params, opinionBoidCount: parseInt(e.target.value) })}
-              className="w-full"
-            />
-          </div>
-
-          <div>
-            <label className="block mb-2">Speed: {params.speed.toFixed(1)}x</label>
-            <input
-              type="range"
-              min="0.1"
-              max="3"
-              step="0.1"
-              value={params.speed}
-              onChange={(e) => setParams({ ...params, speed: parseFloat(e.target.value) })}
-              className="w-full"
-            />
-          </div>
-
-          <div>
-            <label className="block mb-2 font-semibold">Algorithm</label>
-            <div className="space-y-2">
-              <button
-                onClick={() => setParams({ ...params, algorithm: 'optimized' })}
-                className={`w-full px-4 py-2 rounded ${
-                  params.algorithm === 'optimized'
-                    ? 'bg-green-600'
-                    : 'bg-gray-700 hover:bg-gray-600'
-                }`}
-              >
-                Optimized O(n)
-              </button>
-              <button
-                onClick={() => setParams({ ...params, algorithm: 'naive' })}
-                className={`w-full px-4 py-2 rounded ${
-                  params.algorithm === 'naive'
-                    ? 'bg-red-600'
-                    : 'bg-gray-700 hover:bg-gray-600'
-                }`}
-              >
-                Naive O(n²)
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Info */}
-        <div className="bg-gray-900 p-4 rounded text-sm space-y-2">
-          <p className="font-semibold">Opinion Types:</p>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-pink-500"></div>
-              <span className="text-xs"><strong>Radical:</strong> Fast, cluster together</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-cyan-400"></div>
-              <span className="text-xs"><strong>Neutral:</strong> Calm, slower movement</span>
-            </div>
-          </div>
-          <p className="text-xs text-gray-400 mt-2">All boids start neutral. They keep their opinion once changed!</p>
-        </div>
+      {/* Desktop panel */}
+      <div className="hidden md:block">
+        {controlPanel}
       </div>
+
+      {/* Mobile modal */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex items-start justify-end p-4">
+          <div className="absolute inset-0 bg-black bg-opacity-60" onClick={() => setMenuOpen(false)} />
+          <div className="relative w-fullmax-w-lg h-4/5 overflow-hidden rounded-lg z-10">
+            <div className="absolute top-3 right-3 z-20">
+              <button
+                onClick={() => setMenuOpen(false)}
+                className="bg-gray-800/80 text-white p-2 rounded-full"
+                aria-label="Close settings"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="h-full overflow-y-auto">
+              {controlPanel}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
