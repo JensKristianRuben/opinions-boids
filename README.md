@@ -4,7 +4,9 @@ En interaktiv visualisering af opinions-boids algoritmen, bygget med React og Vi
 
 ## Kom i gang
 
-For at køre projektet lokalt, følg disse trin:
+For at køre projektet lokalt, følg disse trin: 
+
+Hvis det ønskes kan projektet også tilgås her: 
 
 1. **Klon projektet**
    ```bash
