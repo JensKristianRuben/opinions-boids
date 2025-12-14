@@ -7,11 +7,11 @@ import { Grid } from 'lucide-react'
 
 function App() {
   return (
-    // <BoidSimulation />
+    <BoidSimulation />
     // <GridboidSimulation/>
     // <VisualBoidInspector/>
     // <DeepScanVisualizer/>
-    <BigOGraph/>
+    // <BigOGraph/>
   )
 }
 
