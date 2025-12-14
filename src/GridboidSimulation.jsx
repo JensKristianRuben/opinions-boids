@@ -1,16 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, Zap, Users, TrendingUp, X } from 'lucide-react';
+import { Play, Pause, RotateCcw, Zap, Users, TrendingUp, X, Grid } from 'lucide-react';
 
-const BoidSimulation = () => {
+const GridboidSimulation = () => {
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const [isRunning, setIsRunning] = useState(true);
+  
+  // NYT: Tilføjet showGrid parameter
   const [params, setParams] = useState({
     userBoidCount: 300,
     opinionBoidCount: 8,
     algorithm: 'optimized',
-    speed: 1.0
+    speed: 1.0,
+    showGrid: false // Default slukket, tænd den for at tage screenshot
   });
+
   const [metrics, setMetrics] = useState({
     fps: 60,
     computeTime: 0,
@@ -18,10 +22,8 @@ const BoidSimulation = () => {
     polarization: 0
   });
 
-  // Mobile menu state
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Simulation state
   const simRef = useRef({
     userBoids: [],
     opinionBoids: [],
@@ -47,20 +49,20 @@ const BoidSimulation = () => {
         y: Math.random() * canvas.height,
         vx: (Math.random() - 0.5) * 0.5,
         vy: (Math.random() - 0.5) * 0.5,
-        opinion: Math.random() > 0.5 ? 1 : -1, // Only radical (1) or neutral (-1)
+        opinion: Math.random() > 0.5 ? 1 : -1,
         radius: 30,
         phase: Math.random() * Math.PI * 2
       });
     }
 
-    // Create user boids - all start as neutral
+    // Create user boids
     for (let i = 0; i < params.userBoidCount; i++) {
       sim.userBoids.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
         vx: (Math.random() - 0.5) * 2,
         vy: (Math.random() - 0.5) * 2,
-        influence: -1, // All start as neutral (-1)
+        influence: -1,
         speed: 2
       });
     }
@@ -106,17 +108,14 @@ const BoidSimulation = () => {
         }
       });
 
-      // Only adopt new opinion if influence is strong enough
       if (strongestInfluence !== null && strongestStrength > 0.3) {
         user.influence = strongestInfluence;
       }
-      // Keep current opinion otherwise (don't decay)
     });
-
     return checks;
   };
 
-
+  // Calculate influence (optimized)
   const calculateInfluenceOptimized = (userBoids, opinionBoids, canvas, gridSize) => {
     const { grid, cols, rows } = buildGrid(opinionBoids, canvas, gridSize);
     let checks = 0;
@@ -155,7 +154,6 @@ const BoidSimulation = () => {
     return checks;
   };
 
-  // Flocking behavior
   const applyFlocking = (userBoids, canvas) => {
     const { grid, cols, rows } = buildGrid(userBoids, canvas, simRef.current.gridSize);
 
@@ -182,15 +180,12 @@ const BoidSimulation = () => {
         const dy = other.y - boid.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Separation - avoid getting too close
         if (dist < 30 && dist > 0) {
           separationX -= dx / dist;
           separationY -= dy / dist;
         }
 
-        // Alignment and cohesion with similar opinions
         if (dist < 80) {
-          // Only flock with boids that have the same radical opinion
           if (boid.influence === 1 && other.influence === 1) {
             alignmentX += other.vx;
             alignmentY += other.vy;
@@ -201,17 +196,13 @@ const BoidSimulation = () => {
         }
       });
 
-      // Random wandering for all boids
       boid.vx += (Math.random() - 0.5) * 0.3;
       boid.vy += (Math.random() - 0.5) * 0.3;
 
-      // RADICAL influence (1): faster, attracted to similar boids
       if (boid.influence === 1) {
-        // Strong separation for personal space
         boid.vx += separationX * 0.15;
         boid.vy += separationY * 0.15;
 
-        // Strong attraction to other radical boids
         if (radicalCount > 0) {
           boid.vx += (alignmentX / radicalCount - boid.vx) * 0.08;
           boid.vy += (alignmentY / radicalCount - boid.vy) * 0.08;
@@ -222,7 +213,6 @@ const BoidSimulation = () => {
           boid.vy += (centerY - boid.y) * 0.025;
         }
 
-        // Speed boost for radical boids
         const targetSpeed = 3.5;
         const currentSpeed = Math.sqrt(boid.vx * boid.vx + boid.vy * boid.vy);
         if (currentSpeed > 0.1) {
@@ -230,14 +220,10 @@ const BoidSimulation = () => {
           boid.vx *= speedFactor * 0.15 + 0.85;
           boid.vy *= speedFactor * 0.15 + 0.85;
         }
-      }
-      // NEUTRAL influence (-1): calm, slower, independent movement
-      else {
-        // Minimal separation - calm boids don't mind proximity
+      } else {
         boid.vx += separationX * 0.05;
         boid.vy += separationY * 0.05;
 
-        // Calm, slow speed
         const targetSpeed = 1.5;
         const currentSpeed = Math.sqrt(boid.vx * boid.vx + boid.vy * boid.vy);
         if (currentSpeed > 0.1) {
@@ -249,13 +235,11 @@ const BoidSimulation = () => {
     });
   };
 
-  // Update simulation
   const updateSimulation = (canvas, deltaTime) => {
     const sim = simRef.current;
     const dt = deltaTime * params.speed;
     const startTime = performance.now();
 
-    // Update opinion boids
     sim.opinionBoids.forEach(boid => {
       boid.x += boid.vx * dt;
       boid.y += boid.vy * dt;
@@ -267,7 +251,6 @@ const BoidSimulation = () => {
       boid.y = Math.max(0, Math.min(canvas.height, boid.y));
     });
 
-    // Calculate influences
     let checks;
     if (params.algorithm === 'naive') {
       checks = calculateInfluenceNaive(sim.userBoids, sim.opinionBoids);
@@ -275,10 +258,8 @@ const BoidSimulation = () => {
       checks = calculateInfluenceOptimized(sim.userBoids, sim.opinionBoids, canvas, sim.gridSize);
     }
 
-    // Apply flocking
     applyFlocking(sim.userBoids, canvas);
 
-    // Update user boids
     sim.userBoids.forEach(boid => {
       boid.x += boid.vx * dt;
       boid.y += boid.vy * dt;
@@ -289,7 +270,6 @@ const BoidSimulation = () => {
       boid.y = Math.max(0, Math.min(canvas.height, boid.y));
     });
 
-    // Calculate polarization
     const avgInfluence = sim.userBoids.reduce((sum, b) => sum + b.influence, 0) / sim.userBoids.length;
     const variance = sim.userBoids.reduce((sum, b) => sum + Math.pow(b.influence - avgInfluence, 2), 0) / sim.userBoids.length;
     const polarization = Math.sqrt(variance);
@@ -310,27 +290,54 @@ const BoidSimulation = () => {
     const deltaTime = sim.lastTime ? (timestamp - sim.lastTime) / 16.67 : 1;
     sim.lastTime = timestamp;
 
-    // Update
     const stats = updateSimulation(canvas, deltaTime);
 
-    // Clear
+    // 1. Clear Background
     ctx.fillStyle = '#0a0a1a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw opinion boids
+    // NYT: 2. Draw Grid (hvis tændt)
+    if (params.showGrid) {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'; // Svag hvid streg
+      ctx.lineWidth = 1;
+      
+      // Tegn vertikale linjer
+      for (let x = 0; x <= canvas.width; x += sim.gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+
+      // Tegn horisontale linjer
+      for (let y = 0; y <= canvas.height; y += sim.gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      // Tegn koordinater (valgfrit - hjælper med at forstå indeksering)
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.font = '10px monospace';
+      for (let x = 0; x <= canvas.width; x += sim.gridSize) {
+        for (let y = 0; y <= canvas.height; y += sim.gridSize) {
+           // Viser bare et lille kryds eller indeks
+           // ctx.fillText(`${Math.floor(x/50)},${Math.floor(y/50)}`, x + 2, y + 10);
+        }
+      }
+    }
+
+    // 3. Draw opinion boids
     sim.opinionBoids.forEach(boid => {
       const pulse = Math.sin(boid.phase) * 0.3 + 0.7;
-      
-      // Glow effect
       const gradient = ctx.createRadialGradient(boid.x, boid.y, 0, boid.x, boid.y, boid.radius * 2.5 * pulse);
       
       if (boid.opinion === 1) {
-        // Radical opinion - bright vibrant colors
         gradient.addColorStop(0, `rgba(255, 0, 150, ${0.6 * pulse})`);
         gradient.addColorStop(0.5, `rgba(255, 100, 180, ${0.3 * pulse})`);
         gradient.addColorStop(1, 'rgba(200, 0, 100, 0)');
       } else {
-        // Neutral opinion - calm blue/teal colors
         gradient.addColorStop(0, `rgba(0, 200, 255, ${0.5 * pulse})`);
         gradient.addColorStop(0.5, `rgba(100, 220, 255, ${0.25 * pulse})`);
         gradient.addColorStop(1, 'rgba(0, 150, 200, 0)');
@@ -341,29 +348,20 @@ const BoidSimulation = () => {
       ctx.arc(boid.x, boid.y, boid.radius * 2.5, 0, Math.PI * 2);
       ctx.fill();
 
-      // Core
       ctx.fillStyle = boid.opinion === 1 ? '#ff0096' : '#00c8ff';
       ctx.beginPath();
       ctx.arc(boid.x, boid.y, boid.radius * 0.4, 0, Math.PI * 2);
       ctx.fill();
     });
 
-    // Draw user boids
+    // 4. Draw user boids
     sim.userBoids.forEach(boid => {
       let r, g, b, alpha;
 
       if (boid.influence === 1) {
-        // Radical - bright pink/magenta
-        r = 255;
-        g = 50;
-        b = 150;
-        alpha = 0.8;
+        r = 255; g = 50; b = 150; alpha = 0.8;
       } else {
-        // Neutral - calm teal/blue
-        r = 50;
-        g = 200;
-        b = 255;
-        alpha = 0.7;
+        r = 50; g = 200; b = 255; alpha = 0.7;
       }
 
       ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
@@ -372,7 +370,6 @@ const BoidSimulation = () => {
       ctx.fill();
     });
 
-    // Update FPS
     sim.frameCount++;
     if (timestamp - sim.fpsTime > 1000) {
       setMetrics({
@@ -388,7 +385,6 @@ const BoidSimulation = () => {
     animationRef.current = requestAnimationFrame(render);
   };
 
-  // Start/stop animation
   useEffect(() => {
     if (isRunning) {
       simRef.current.lastTime = 0;
@@ -406,7 +402,6 @@ const BoidSimulation = () => {
     };
   }, [isRunning, params]);
 
-  // Canvas resize
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -429,12 +424,10 @@ const BoidSimulation = () => {
     }, 100);
   };
 
-  // Extracted control panel so we can reuse in desktop and mobile
   const controlPanel = (
     <div className="w-80 bg-gray-800 text-white p-6 overflow-y-auto space-y-6">
       <h1 className="text-2xl font-bold mb-4">Opinion Boids</h1>
 
-      {/* Playback Controls */}
       <div className="flex gap-2">
         <button
           onClick={() => setIsRunning(!isRunning)}
@@ -451,7 +444,6 @@ const BoidSimulation = () => {
         </button>
       </div>
 
-      {/* Parameters */}
       <div className="space-y-4">
         <div>
           <label className="flex items-center gap-2 mb-2">
@@ -519,9 +511,24 @@ const BoidSimulation = () => {
             </button>
           </div>
         </div>
+
+        {/* NYT: Debugging sektion */}
+        <div>
+          <label className="block mb-2 font-semibold flex items-center gap-2">
+            <Grid size={16} /> Visualization
+          </label>
+          <button
+            onClick={() => setParams({ ...params, showGrid: !params.showGrid })}
+            className={`w-full px-4 py-2 rounded flex items-center justify-between ${
+              params.showGrid ? 'bg-indigo-600' : 'bg-gray-700'
+            }`}
+          >
+            <span>Show Grid</span>
+            <span className="text-xs">{params.showGrid ? 'ON' : 'OFF'}</span>
+          </button>
+        </div>
       </div>
 
-      {/* Info */}
       <div className="bg-gray-900 p-4 rounded text-sm space-y-2">
         <p className="font-semibold">Opinion Types:</p>
         <div className="space-y-2">
@@ -534,14 +541,12 @@ const BoidSimulation = () => {
             <span className="text-xs"><strong>Neutral:</strong> Calm, slower movement</span>
           </div>
         </div>
-        <p className="text-xs text-gray-400 mt-2">All boids start neutral. They keep their opinion once changed!</p>
       </div>
     </div>
   );
 
   return (
     <div className="w-full h-screen bg-gray-900 flex">
-      {/* Canvas */}
       <div className="flex-1 relative">
         <canvas
           ref={canvasRef}
@@ -549,7 +554,6 @@ const BoidSimulation = () => {
           style={{ background: 'linear-gradient(135deg, #0a0a1a 0%, #1a0a2a 100%)' }}
         />
         
-        {/* Metrics Overlay */}
         <div className="absolute top-4 left-4 bg-black bg-opacity-70 text-white p-4 rounded-lg font-mono text-sm space-y-2">
           <div className="flex items-center gap-2">
             <Zap size={16} className="text-yellow-400" />
@@ -564,8 +568,6 @@ const BoidSimulation = () => {
         </div>
       </div>
 
-      {/* Responsive Control Panel: show on md+, mobile uses a popup */}
-      {/* Mobile menu button */}
       <button
         className="md:hidden fixed top-4 left-4 z-40 bg-blue-600 text-white p-3 rounded-full shadow-lg"
         onClick={() => setMenuOpen(true)}
@@ -574,12 +576,10 @@ const BoidSimulation = () => {
         ⚙️
       </button>
 
-      {/* Desktop panel */}
       <div className="hidden md:block">
         {controlPanel}
       </div>
 
-      {/* Mobile modal */}
       {menuOpen && (
         <div className="fixed inset-0 z-50 md:hidden flex items-start justify-end p-4">
           <div className="absolute inset-0 bg-black bg-opacity-60" onClick={() => setMenuOpen(false)} />
@@ -603,4 +603,4 @@ const BoidSimulation = () => {
   );
 };
 
-export default BoidSimulation;
+export default GridboidSimulation;
