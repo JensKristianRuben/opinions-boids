@@ -18,10 +18,8 @@ const BoidSimulation = () => {
     polarization: 0
   });
 
-  // Mobile menu state
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Simulation state
   const simRef = useRef({
     userBoids: [],
     opinionBoids: [],
@@ -31,7 +29,6 @@ const BoidSimulation = () => {
     gridSize: 50
   });
 
-  // Initialize simulation
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -40,7 +37,6 @@ const BoidSimulation = () => {
     sim.userBoids = [];
     sim.opinionBoids = [];
 
-    // Create opinion boids
     for (let i = 0; i < params.opinionBoidCount; i++) {
       sim.opinionBoids.push({
         x: Math.random() * canvas.width,
@@ -53,7 +49,7 @@ const BoidSimulation = () => {
       });
     }
 
-    // Create user boids
+
     for (let i = 0; i < params.userBoidCount; i++) {
       sim.userBoids.push({
         x: Math.random() * canvas.width,
@@ -66,7 +62,6 @@ const BoidSimulation = () => {
     }
   }, [params.userBoidCount, params.opinionBoidCount]);
 
-  // --- SPATIAL GRID HELPER ---
   const buildGrid = (boids, canvas, gridSize) => {
     const cols = Math.ceil(canvas.width / gridSize);
     const rows = Math.ceil(canvas.height / gridSize);
@@ -83,7 +78,6 @@ const BoidSimulation = () => {
     return { grid, cols, rows };
   };
 
-  // --- INFLUENCE CALCULATIONS ---
   const calculateInfluenceNaive = (userBoids, opinionBoids) => {
     let checks = 0;
     userBoids.forEach(user => {
@@ -91,7 +85,7 @@ const BoidSimulation = () => {
       let strongestStrength = 0;
 
       opinionBoids.forEach(opinion => {
-        checks++; // Tæller hvert tjek
+        checks++;
         const dx = opinion.x - user.x;
         const dy = opinion.y - user.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -126,13 +120,15 @@ const BoidSimulation = () => {
       for (let r = Math.max(0, row - 1); r <= Math.min(rows - 1, row + 1); r++) {
         for (let c = Math.max(0, col - 1); c <= Math.min(cols - 1, col + 1); c++) {
           grid[r][c].forEach(opinionIdx => {
-            checks++; // Tæller kun tjek i nabo-celler
+            checks++;
             const opinion = opinionBoids[opinionIdx];
-            const dx = opinion.x - user.x;
+            // Pythagoras
+            const dx = opinion.x - user.x; 
             const dy = opinion.y - user.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             const range = opinion.radius * 3;
 
+            // måler effekt
             if (dist < range) {
               const strength = 1 - (dist / range);
               if (strength > strongestStrength) {
@@ -151,8 +147,6 @@ const BoidSimulation = () => {
     return checks;
   };
 
-  // --- FLOCKING LOGIC (SHARED) ---
-  // Vi trækker selve matematikken ud her, så den er ens for både Naive og Optimized
   const computeFlockingForces = (boid, nearbyBoids) => {
     let separationX = 0, separationY = 0;
     let alignmentX = 0, alignmentY = 0;
@@ -186,7 +180,6 @@ const BoidSimulation = () => {
   const applyPhysics = (boid, forces) => {
     const { separationX, separationY, alignmentX, alignmentY, cohesionX, cohesionY, radicalCount } = forces;
     
-    // Random wandering
     boid.vx += (Math.random() - 0.5) * 0.3;
     boid.vy += (Math.random() - 0.5) * 0.3;
 
@@ -203,7 +196,6 @@ const BoidSimulation = () => {
         boid.vy += (centerY - boid.y) * 0.025;
       }
 
-      // Speed limit logic
       const targetSpeed = 3.5;
       const currentSpeed = Math.sqrt(boid.vx * boid.vx + boid.vy * boid.vy);
       if (currentSpeed > 0.1) {
@@ -225,11 +217,10 @@ const BoidSimulation = () => {
     }
   };
 
-  // --- NAIVE FLOCKING (O(N^2)) ---
+
   const applyFlockingNaive = (userBoids) => {
     let checks = 0;
     
-    // Hver boid tjekker ALLE andre boids
     userBoids.forEach((boid, idx) => {
       let nearbyBoids = [];
       
@@ -247,7 +238,6 @@ const BoidSimulation = () => {
     return checks;
   };
 
-  // --- OPTIMIZED FLOCKING (O(N)) ---
   const applyFlockingOptimized = (userBoids, canvas) => {
     const { grid, cols, rows } = buildGrid(userBoids, canvas, simRef.current.gridSize);
     let checks = 0;
@@ -261,7 +251,7 @@ const BoidSimulation = () => {
         for (let c = Math.max(0, col - 1); c <= Math.min(cols - 1, col + 1); c++) {
           grid[r][c].forEach(i => {
             if (i !== idx) {
-                checks++; // Tæller kun naboer i 3x3 grid
+                checks++;
                 nearbyBoids.push(userBoids[i]);
             }
           });
@@ -275,13 +265,11 @@ const BoidSimulation = () => {
     return checks;
   };
 
-  // --- UPDATE LOOP ---
   const updateSimulation = (canvas, deltaTime) => {
     const sim = simRef.current;
     const dt = deltaTime * params.speed;
     const startTime = performance.now();
 
-    // Update opinion boids
     sim.opinionBoids.forEach(boid => {
       boid.x += boid.vx * dt;
       boid.y += boid.vy * dt;
@@ -294,14 +282,12 @@ const BoidSimulation = () => {
 
     let totalChecks = 0;
 
-    // STEP 1: Calculate Influence (Naive vs Optimized)
     if (params.algorithm === 'naive') {
       totalChecks += calculateInfluenceNaive(sim.userBoids, sim.opinionBoids);
     } else {
       totalChecks += calculateInfluenceOptimized(sim.userBoids, sim.opinionBoids, canvas, sim.gridSize);
     }
 
-    // STEP 2: Apply Flocking (Naive vs Optimized) - NU MED RIGTIG SWITCH!
     if (params.algorithm === 'naive') {
         
         totalChecks += applyFlockingNaive(sim.userBoids);
@@ -309,7 +295,6 @@ const BoidSimulation = () => {
         totalChecks += applyFlockingOptimized(sim.userBoids, canvas);
     }
 
-    // Update positions
     sim.userBoids.forEach(boid => {
       boid.x += boid.vx * dt;
       boid.y += boid.vy * dt;
@@ -319,7 +304,6 @@ const BoidSimulation = () => {
       boid.y = Math.max(0, Math.min(canvas.height, boid.y));
     });
 
-    // Stats
     const avgInfluence = sim.userBoids.reduce((sum, b) => sum + b.influence, 0) / sim.userBoids.length;
     const variance = sim.userBoids.reduce((sum, b) => sum + Math.pow(b.influence - avgInfluence, 2), 0) / sim.userBoids.length;
     const polarization = Math.sqrt(variance);
@@ -341,7 +325,6 @@ const BoidSimulation = () => {
     ctx.fillStyle = '#0a0a1a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw opinion boids
     sim.opinionBoids.forEach(boid => {
       const pulse = Math.sin(boid.phase) * 0.3 + 0.7;
       const gradient = ctx.createRadialGradient(boid.x, boid.y, 0, boid.x, boid.y, boid.radius * 2.5 * pulse);
@@ -365,7 +348,6 @@ const BoidSimulation = () => {
       ctx.fill();
     });
 
-    // Draw user boids
     sim.userBoids.forEach(boid => {
       let r, g, b, alpha;
       if (boid.influence === 1) {
@@ -439,7 +421,7 @@ const BoidSimulation = () => {
       <div className="space-y-4">
         <div>
           <label className="flex items-center gap-2 mb-2"><Users size={16} /> User Boids: {params.userBoidCount}</label>
-          {/* Changed max to 1500 to prevent crash in naive mode */}
+          {}
           <input type="range" min="50" max="1500" step="50" value={params.userBoidCount} onChange={(e) => setParams({ ...params, userBoidCount: parseInt(e.target.value) })} className="w-full" />
         </div>
         <div>
